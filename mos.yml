@@ -21,7 +21,8 @@ config_schema:
   - ["azure.device_id", "s", "", {title: "Device ID"}]
   - ["azure.cert", "s", "", {title: "X.509 certificate"}]
   - ["azure.key", "s", "", {title: "X.509 private key"}]
-  - ["azure.enable_cloud_messages", "b", true, {title: "Subscribe to the cloud messages topic"}]
+  - ["azure.enable_cm", "b", true, {title: "Subscribe to the cloud messages topic"}]
+  - ["azure.enable_dm", "b", true, {title: "Subscribe to the direct method invocation topic"}]
 
 libs:
   - origin: https://github.com/mongoose-os-libs/ca-bundle

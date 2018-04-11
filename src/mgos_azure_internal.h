@@ -31,7 +31,8 @@ extern "C" {
 struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
                                        const struct mg_str key, uint64_t se);
 
-bool mgos_azure_messages_init(void);
+bool mgos_azure_cm_init(void);
+bool mgos_azure_dm_init(void);
 
 #ifdef __cplusplus
 }

@@ -43,7 +43,8 @@ static void mgos_azure_mqtt_connect(struct mg_connection *c,
   uint64_t exp = (int64_t) mg_time() + ctx->token_ttl;
   struct mg_str tok = MG_NULL_STR;
   char *uri = NULL;
-  mg_asprintf(&uri, 0, "%s/%s", ctx->host_name, ctx->device_id);
+  mg_asprintf(&uri, 0, "%s/%s/api-version=2016-11-14", ctx->host_name,
+              ctx->device_id);
   opts->user_name = uri;
   tok =
       mgos_azure_gen_sas_token(mg_mk_str(uri), mg_mk_str(ctx->access_key), exp);
@@ -61,9 +62,9 @@ struct mg_str mgos_azure_get_device_id(void) {
 
 bool mgos_azure_init(void) {
   bool ret = false;
-  char *uri = NULL;
   struct mg_str cs;
   struct mgos_config_mqtt mcfg;
+  char *uri = NULL;
   const char *auth_method = NULL;
   if (!mgos_sys_config_get_azure_enable()) {
     ret = true;
@@ -89,7 +90,7 @@ bool mgos_azure_init(void) {
     mcfg.client_id = mcfg.user = mcfg.pass = NULL;
     mcfg.ssl_cert = mcfg.ssl_key = NULL;
     mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, ctx);
-    mg_asprintf(&uri, 0, "%s/%s", ctx->host_name, ctx->device_id);
+    s_device_id = ctx->device_id;
     auth_method = "SAS";
   } else if (mgos_sys_config_get_azure_host_name() != NULL &&
              mgos_sys_config_get_azure_device_id() != NULL &&
@@ -97,13 +98,15 @@ bool mgos_azure_init(void) {
              mgos_sys_config_get_azure_key() != NULL) {
     mcfg.server = (char *) mgos_sys_config_get_azure_host_name();
     mcfg.client_id = (char *) mgos_sys_config_get_azure_device_id();
-    mg_asprintf(&uri, 0, "%s/%s", mgos_sys_config_get_azure_host_name(),
+    mg_asprintf(&uri, 0, "%s/%s/api-version=2016-11-14",
+                mgos_sys_config_get_azure_host_name(),
                 mgos_sys_config_get_azure_device_id());
     mcfg.user = uri;
     mcfg.pass = NULL;
     mcfg.ssl_cert = (char *) mgos_sys_config_get_azure_cert();
     mcfg.ssl_key = (char *) mgos_sys_config_get_azure_key();
     mgos_mqtt_set_connect_fn(NULL, NULL);
+    s_device_id = mgos_sys_config_get_azure_device_id();
     auth_method = mcfg.ssl_cert;
   } else {
     LOG(LL_ERROR,
@@ -111,15 +114,15 @@ bool mgos_azure_init(void) {
     ret = false;
     goto out;
   }
-  LOG(LL_INFO, ("Azure IoT Hub client for %s (%s)", uri, auth_method));
+  LOG(LL_INFO, ("Azure IoT Hub client for %s/%s (%s)", mcfg.server, s_device_id,
+                auth_method));
 
   if (!mgos_mqtt_set_config(&mcfg)) goto out;
 
-  s_device_id = mcfg.client_id;
-
-  ret = mgos_azure_messages_init();
+  ret = mgos_azure_cm_init() && mgos_azure_dm_init();
 
 out:
   free(uri);
+  if (!ret) s_device_id = NULL;
   return ret;
 }

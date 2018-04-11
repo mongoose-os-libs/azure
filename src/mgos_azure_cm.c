@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+/*
+ * Cloud Messaging support.
+ * https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messaging
+ */
+
 #include "mgos_azure.h"
 #include "mgos_azure_internal.h"
 
@@ -22,29 +27,27 @@
 
 #include "mgos_mqtt.h"
 
-static void mgos_azure_cloud_message_ev(struct mg_connection *nc, int ev,
-                                        void *ev_data, void *user_data) {
-  if (ev != MG_EV_MQTT_PUBLISH) return;
-  struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
-  struct mgos_azure_cloud_msg cloud_msg = {
-      .body = msg->payload,
+static void mgos_azure_cm_ev(struct mg_connection *nc, const char *topic,
+                             int topic_len, const char *msg, int msg_len,
+                             void *ud) {
+  struct mgos_azure_cm_arg cma = {
+      .body = {.p = msg, .len = msg_len},
   };
-  LOG(LL_DEBUG,
-      ("Cloud msg: '%.*s'", (int) cloud_msg.body.len, cloud_msg.body.p));
-  mgos_event_trigger(MGOS_AZURE_EVENT_CLOUD_MSG, &cloud_msg);
+  LOG(LL_DEBUG, ("Cloud msg: '%.*s'", (int) cma.body.len, cma.body.p));
+  mgos_event_trigger(MGOS_AZURE_EVENT_CM, &cma);
   (void) nc;
-  (void) ev_data;
-  (void) user_data;
+  (void) topic;
+  (void) topic_len;
+  (void) ud;
 }
 
-bool mgos_azure_messages_init(void) {
-  if (!mgos_sys_config_get_azure_enable_cloud_messages()) return true;
+bool mgos_azure_cm_init(void) {
+  if (!mgos_sys_config_get_azure_enable_cm()) return true;
   struct mg_str did = mgos_azure_get_device_id();
   char *topic = NULL;
   mg_asprintf(&topic, 0, "devices/%.*s/messages/devicebound/#", (int) did.len,
               did.p);
-  mgos_mqtt_global_subscribe(mg_mk_str(topic), mgos_azure_cloud_message_ev,
-                             NULL);
+  mgos_mqtt_sub(topic, mgos_azure_cm_ev, NULL);
   free(topic);
   return true;
 }

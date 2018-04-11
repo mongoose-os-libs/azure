@@ -32,16 +32,30 @@ extern "C" {
 
 /* In the comment, the type of `void *ev_data` is specified */
 enum mgos_azure_event {
-  MGOS_AZURE_EVENT_CLOUD_MSG = /* struct mgos_azure_cloud_msg * */
-  MGOS_AZURE_EVENT_BASE,
+  /* Incoming Cloud Message. Arg: struct mgos_azure_cloud_msg_arg * */
+  MGOS_AZURE_EVENT_CM = MGOS_AZURE_EVENT_BASE,
+  /* Incoming Direct Method invocation. Arg: struct mgos_azure_dm_arg * */
+  MGOS_AZURE_EVENT_DM,
 };
 
-struct mgos_azure_cloud_msg {
+struct mgos_azure_cm_arg {
   struct mg_str body;
   /* TODO(rojer): Parse properties too */
 };
 
+struct mgos_azure_dm_arg {
+  int64_t id;
+  struct mg_str method;
+  struct mg_str payload;
+};
+
 struct mg_str mgos_azure_get_device_id(void);
+
+/* Respond to a Direct Method call. */
+bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp);
+
+/* Respond to a Direct Method call with a JSON message. */
+bool mgos_azure_dm_responsef(int64_t id, int status, const char *json_fmt, ...);
 
 #ifdef __cplusplus
 }
