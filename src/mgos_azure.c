@@ -16,6 +16,7 @@
  */
 
 #include "mgos_azure.h"
+#include "mgos_azure_internal.h"
 
 #include "common/cs_base64.h"
 #include "common/cs_dbg.h"
@@ -31,6 +32,8 @@ struct mgos_azure_sas_ctx {
   char *access_key;
   int token_ttl;
 };
+
+static const char *s_device_id = NULL;
 
 static void mgos_azure_mqtt_connect(struct mg_connection *c,
                                     const char *client_id,
@@ -50,6 +53,10 @@ static void mgos_azure_mqtt_connect(struct mg_connection *c,
   free(uri);
   free((void *) tok.p);
   (void) client_id;
+}
+
+struct mg_str mgos_azure_get_device_id(void) {
+  return mg_mk_str(s_device_id);
 }
 
 bool mgos_azure_init(void) {
@@ -105,7 +112,12 @@ bool mgos_azure_init(void) {
     goto out;
   }
   LOG(LL_INFO, ("Azure IoT Hub client for %s (%s)", uri, auth_method));
-  ret = mgos_mqtt_set_config(&mcfg);
+
+  if (!mgos_mqtt_set_config(&mcfg)) goto out;
+
+  s_device_id = mcfg.client_id;
+
+  ret = mgos_azure_messages_init();
 
 out:
   free(uri);

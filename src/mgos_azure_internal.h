@@ -15,36 +15,26 @@
  * limitations under the License.
  */
 
-#ifndef CS_MOS_LIBS_AZURE_INCLUDE_MGOS_AZURE_H_
-#define CS_MOS_LIBS_AZURE_INCLUDE_MGOS_AZURE_H_
+#ifndef CS_MOS_LIBS_AZURE_SRC_MGOS_AZURE_INTERNAL_H_
+#define CS_MOS_LIBS_AZURE_SRC_MGOS_AZURE_INTERNAL_H_
 
-#include <stdint.h>
-
-#include "common/mg_str.h"
-
-#include "mgos_event.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MGOS_AZURE_EVENT_BASE MGOS_EVENT_BASE('A', 'Z', 'R')
+/*
+ * Generate a SAS token as described here:
+ * https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-security#security-tokens
+ */
+struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
+                                       const struct mg_str key, uint64_t se);
 
-/* In the comment, the type of `void *ev_data` is specified */
-enum mgos_azure_event {
-  MGOS_AZURE_EVENT_CLOUD_MSG = /* struct mgos_azure_cloud_msg * */
-  MGOS_AZURE_EVENT_BASE,
-};
-
-struct mgos_azure_cloud_msg {
-  struct mg_str body;
-  /* TODO(rojer): Parse properties too */
-};
-
-struct mg_str mgos_azure_get_device_id(void);
+bool mgos_azure_messages_init(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CS_MOS_LIBS_AZURE_INCLUDE_MGOS_AZURE_H_ */
+#endif /* CS_MOS_LIBS_AZURE_SRC_MGOS_AZURE_INTERNAL_H_ */
