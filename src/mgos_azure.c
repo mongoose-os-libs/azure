@@ -25,21 +25,23 @@
 
 #include "mgos_mqtt.h"
 #include "mgos_sys_config.h"
+#include "mgos_system.h"
 
-struct mgos_azure_sas_ctx {
+struct mgos_azure_ctx {
   char *host_name;
   char *device_id;
   char *access_key;
   int token_ttl;
+  bool is_connected;
 };
 
-static const char *s_device_id = NULL;
+static struct mgos_azure_ctx *s_ctx = NULL;
 
 static void mgos_azure_mqtt_connect(struct mg_connection *c,
                                     const char *client_id,
                                     struct mg_send_mqtt_handshake_opts *opts,
                                     void *arg) {
-  struct mgos_azure_sas_ctx *ctx = (struct mgos_azure_sas_ctx *) arg;
+  struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) arg;
   uint64_t exp = (int64_t) mg_time() + ctx->token_ttl;
   struct mg_str tok = MG_NULL_STR;
   char *uri = NULL;
@@ -56,8 +58,47 @@ static void mgos_azure_mqtt_connect(struct mg_connection *c,
   (void) client_id;
 }
 
+static void ev_cb(void *arg) {
+  mgos_event_trigger((int) arg, NULL);
+}
+
+static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
+                          void *user_data) {
+  struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) user_data;
+  switch (ev) {
+    case MG_EV_MQTT_CONNACK: {
+      struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
+      switch (msg->connack_ret_code) {
+        case 0:
+          /* TODO(rojer): Should wait for CM and DM SUBACK, if enabled. */
+          ctx->is_connected = true;
+          mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EVENT_CONNECT, false);
+          break;
+        default:
+          LOG(LL_ERROR, ("Azure MQTT connection failed (%d). "
+                         "Make sure clock is set correctly.",
+                         msg->connack_ret_code));
+      }
+      break;
+    }
+    case MG_EV_CLOSE:
+      if (ctx->is_connected) {
+        ctx->is_connected = false;
+        mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EVENT_CLOSE, false);
+      }
+      break;
+  }
+  (void) nc;
+  (void) ev_data;
+  (void) user_data;
+}
+
+struct mg_str mgos_azure_get_host_name(void) {
+  return mg_mk_str(s_ctx ? s_ctx->host_name : NULL);
+}
+
 struct mg_str mgos_azure_get_device_id(void) {
-  return mg_mk_str(s_device_id);
+  return mg_mk_str(s_ctx ? s_ctx->device_id : NULL);
 }
 
 bool mgos_azure_init(void) {
@@ -66,31 +107,30 @@ bool mgos_azure_init(void) {
   struct mgos_config_mqtt mcfg;
   char *uri = NULL;
   const char *auth_method = NULL;
+  mgos_event_register_base(MGOS_AZURE_EVENT_BASE, __FILE__);
   if (!mgos_sys_config_get_azure_enable()) {
     ret = true;
     goto out;
   }
+  s_ctx = (struct mgos_azure_ctx *) calloc(1, sizeof(*s_ctx));
   mcfg = *mgos_sys_config_get_mqtt();
   mcfg.enable = true;
   if (mcfg.ssl_ca_cert == NULL) mcfg.ssl_ca_cert = "ca.pem";
   cs = mg_mk_str(mgos_sys_config_get_azure_cs());
   if (cs.len > 0) {
-    struct mgos_azure_sas_ctx *ctx =
-        (struct mgos_azure_sas_ctx *) calloc(1, sizeof(*ctx));
-    ctx->token_ttl = mgos_sys_config_get_azure_token_ttl();
-    if (mg_http_parse_header2(&cs, "HostName", &ctx->host_name, 0) <= 0 ||
-        mg_http_parse_header2(&cs, "DeviceId", &ctx->device_id, 0) <= 0 ||
-        mg_http_parse_header2(&cs, "SharedAccessKey", &ctx->access_key, 0) <=
+    s_ctx->token_ttl = mgos_sys_config_get_azure_token_ttl();
+    if (mg_http_parse_header2(&cs, "HostName", &s_ctx->host_name, 0) <= 0 ||
+        mg_http_parse_header2(&cs, "DeviceId", &s_ctx->device_id, 0) <= 0 ||
+        mg_http_parse_header2(&cs, "SharedAccessKey", &s_ctx->access_key, 0) <=
             0) {
       LOG(LL_ERROR, ("Invalid connection string"));
       ret = false;
       goto out;
     }
-    mcfg.server = ctx->host_name;
+    mcfg.server = s_ctx->host_name;
     mcfg.client_id = mcfg.user = mcfg.pass = NULL;
     mcfg.ssl_cert = mcfg.ssl_key = NULL;
-    mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, ctx);
-    s_device_id = ctx->device_id;
+    mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, s_ctx);
     auth_method = "SAS";
   } else if (mgos_sys_config_get_azure_host_name() != NULL &&
              mgos_sys_config_get_azure_device_id() != NULL &&
@@ -106,7 +146,7 @@ bool mgos_azure_init(void) {
     mcfg.ssl_cert = (char *) mgos_sys_config_get_azure_cert();
     mcfg.ssl_key = (char *) mgos_sys_config_get_azure_key();
     mgos_mqtt_set_connect_fn(NULL, NULL);
-    s_device_id = mgos_sys_config_get_azure_device_id();
+    s_ctx->device_id = (char *) mgos_sys_config_get_azure_device_id();
     auth_method = mcfg.ssl_cert;
   } else {
     LOG(LL_ERROR,
@@ -114,15 +154,22 @@ bool mgos_azure_init(void) {
     ret = false;
     goto out;
   }
-  LOG(LL_INFO, ("Azure IoT Hub client for %s/%s (%s)", mcfg.server, s_device_id,
-                auth_method));
+  LOG(LL_INFO, ("Azure IoT Hub client for %s/%s (%s)", mcfg.server,
+                s_ctx->device_id, auth_method));
 
   if (!mgos_mqtt_set_config(&mcfg)) goto out;
+
+  s_ctx->host_name = mcfg.server;
 
   ret = mgos_azure_cm_init() && mgos_azure_dm_init();
 
 out:
   free(uri);
-  if (!ret) s_device_id = NULL;
+  if (ret) {
+    mgos_mqtt_add_global_handler(azure_mqtt_ev, s_ctx);
+  } else {
+    /* We leak a few small bits here, no big deal */
+    s_ctx = NULL;
+  }
   return ret;
 }

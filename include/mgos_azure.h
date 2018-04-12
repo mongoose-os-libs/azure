@@ -32,10 +32,14 @@ extern "C" {
 
 /* In the comment, the type of `void *ev_data` is specified */
 enum mgos_azure_event {
+  /* Connected to the Azure cloud. Arg: NULL */
+  MGOS_AZURE_EVENT_CONNECT = MGOS_AZURE_EVENT_BASE,
   /* Incoming Cloud Message. Arg: struct mgos_azure_cloud_msg_arg * */
   MGOS_AZURE_EVENT_CM = MGOS_AZURE_EVENT_BASE,
   /* Incoming Direct Method invocation. Arg: struct mgos_azure_dm_arg * */
   MGOS_AZURE_EVENT_DM,
+  /* Disonnected from the cloud. Arg: NULL */
+  MGOS_AZURE_EVENT_CLOSE,
 };
 
 struct mgos_azure_cm_arg {
@@ -49,6 +53,10 @@ struct mgos_azure_dm_arg {
   struct mg_str payload;
 };
 
+/* Returns host name of the Azure hub */
+struct mg_str mgos_azure_get_host_name(void);
+
+/* Returns Azure device ID */
 struct mg_str mgos_azure_get_device_id(void);
 
 /* Respond to a Direct Method call. */
