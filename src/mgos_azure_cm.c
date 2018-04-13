@@ -30,14 +30,20 @@
 static void mgos_azure_cm_ev(struct mg_connection *nc, const char *topic,
                              int topic_len, const char *msg, int msg_len,
                              void *ud) {
+  struct mg_str ps = MG_MK_STR("/devicebound/%24");
+  struct mg_str ts = {.p = topic, .len = topic_len};
   struct mgos_azure_cm_arg cma = {
       .body = {.p = msg, .len = msg_len},
   };
-  LOG(LL_DEBUG, ("Cloud msg: '%.*s'", (int) cma.body.len, cma.body.p));
+  const char *pstart;
+  if ((pstart = mg_strstr(ts, ps)) != NULL) {
+    cma.props.p = pstart + ps.len;
+    cma.props.len = (ts.p + ts.len) - cma.props.p;
+  }
+  LOG(LL_DEBUG, ("Cloud msg: '%.*s' '%.*s'", (int) cma.body.len, cma.body.p,
+                 (int) cma.props.len, cma.props.p));
   mgos_event_trigger(MGOS_AZURE_EVENT_CM, &cma);
   (void) nc;
-  (void) topic;
-  (void) topic_len;
   (void) ud;
 }
 

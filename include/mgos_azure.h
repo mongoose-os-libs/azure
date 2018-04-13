@@ -35,7 +35,7 @@ enum mgos_azure_event {
   /* Connected to the Azure cloud. Arg: NULL */
   MGOS_AZURE_EVENT_CONNECT = MGOS_AZURE_EVENT_BASE,
   /* Incoming Cloud Message. Arg: struct mgos_azure_cloud_msg_arg * */
-  MGOS_AZURE_EVENT_CM = MGOS_AZURE_EVENT_BASE,
+  MGOS_AZURE_EVENT_CM,
   /* Incoming Direct Method invocation. Arg: struct mgos_azure_dm_arg * */
   MGOS_AZURE_EVENT_DM,
   /* Disonnected from the cloud. Arg: NULL */
@@ -44,7 +44,8 @@ enum mgos_azure_event {
 
 struct mgos_azure_cm_arg {
   struct mg_str body;
-  /* TODO(rojer): Parse properties too */
+  /* URL-encoded string of message properties. */
+  struct mg_str props;
 };
 
 struct mgos_azure_dm_arg {
