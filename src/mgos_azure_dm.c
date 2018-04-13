@@ -61,7 +61,7 @@ static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
   dma.id = strtoll(idbuf, NULL, 10);
   LOG(LL_DEBUG, ("DM '%.*s' (%lld): '%.*s'", (int) dma.method.len, dma.method.p,
                  (long long int) dma.id, (int) dma.payload.len, dma.payload.p));
-  mgos_event_trigger(MGOS_AZURE_EVENT_DM, &dma);
+  mgos_event_trigger(MGOS_AZURE_EV_DM, &dma);
 
   return;
 

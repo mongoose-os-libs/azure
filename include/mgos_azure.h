@@ -28,25 +28,40 @@
 extern "C" {
 #endif
 
-#define MGOS_AZURE_EVENT_BASE MGOS_EVENT_BASE('A', 'Z', 'R')
+#define MGOS_AZURE_EV_BASE MGOS_EVENT_BASE('A', 'Z', 'R')
 
 /* In the comment, the type of `void *ev_data` is specified */
 enum mgos_azure_event {
   /* Connected to the Azure cloud. Arg: NULL */
-  MGOS_AZURE_EVENT_CONNECT = MGOS_AZURE_EVENT_BASE,
-  /* Incoming Cloud Message. Arg: struct mgos_azure_cloud_msg_arg * */
-  MGOS_AZURE_EVENT_CM,
+  MGOS_AZURE_EV_CONNECT = MGOS_AZURE_EV_BASE,
+  /* Incoming Cloud to Device Message. Arg: struct mgos_azure_c2d_arg * */
+  MGOS_AZURE_EV_C2D,
   /* Incoming Direct Method invocation. Arg: struct mgos_azure_dm_arg * */
-  MGOS_AZURE_EVENT_DM,
+  MGOS_AZURE_EV_DM,
   /* Disonnected from the cloud. Arg: NULL */
-  MGOS_AZURE_EVENT_CLOSE,
+  MGOS_AZURE_EV_CLOSE,
 };
 
-struct mgos_azure_cm_arg {
+struct mgos_azure_c2d_arg {
   struct mg_str body;
   /* URL-encoded string of message properties. */
   struct mg_str props;
 };
+
+/*
+ * Send a Device to Cloud message.
+ * If present, the properties string must be URL-encoded.
+ */
+bool mgos_azure_send_d2c_msg(const struct mg_str props,
+                             const struct mg_str body);
+
+/* A variant of mgos_azure_send_d2c_msg that formats a JSON message. */
+bool mgos_azure_send_d2c_msgf(const struct mg_str props, const char *json_fmt,
+                              ...);
+
+/* A variant of mgos_azure_send_d2c_msg that takes pointers, for easy FFI. */
+bool mgos_azure_send_d2c_msgp(const struct mg_str *props,
+                              const struct mg_str *body);
 
 struct mgos_azure_dm_arg {
   int64_t id;

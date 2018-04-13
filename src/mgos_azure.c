@@ -72,7 +72,7 @@ static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
         case 0:
           /* TODO(rojer): Should wait for CM and DM SUBACK, if enabled. */
           ctx->is_connected = true;
-          mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EVENT_CONNECT, false);
+          mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CONNECT, false);
           break;
         default:
           LOG(LL_ERROR, ("Azure MQTT connection failed (%d). "
@@ -84,7 +84,7 @@ static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
     case MG_EV_CLOSE:
       if (ctx->is_connected) {
         ctx->is_connected = false;
-        mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EVENT_CLOSE, false);
+        mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CLOSE, false);
       }
       break;
   }
@@ -107,7 +107,7 @@ bool mgos_azure_init(void) {
   struct mgos_config_mqtt mcfg;
   char *uri = NULL;
   const char *auth_method = NULL;
-  mgos_event_register_base(MGOS_AZURE_EVENT_BASE, __FILE__);
+  mgos_event_register_base(MGOS_AZURE_EV_BASE, __FILE__);
   if (!mgos_sys_config_get_azure_enable()) {
     ret = true;
     goto out;
@@ -166,7 +166,7 @@ bool mgos_azure_init(void) {
 out:
   free(uri);
   if (ret) {
-    mgos_mqtt_add_global_handler(azure_mqtt_ev, s_ctx);
+    if (s_ctx != NULL) mgos_mqtt_add_global_handler(azure_mqtt_ev, s_ctx);
   } else {
     /* We leak a few small bits here, no big deal */
     s_ctx = NULL;
