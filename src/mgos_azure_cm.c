@@ -26,6 +26,9 @@
 #include "common/cs_dbg.h"
 
 #include "frozen.h"
+#ifdef MGOS_HAVE_MJS
+#include "mjs.h"
+#endif
 
 #include "mgos_mqtt.h"
 
@@ -90,3 +93,18 @@ bool mgos_azure_cm_init(void) {
   free(topic);
   return true;
 }
+
+/* FFI helpers */
+#ifdef MGOS_HAVE_MJS
+static const struct mjs_c_struct_member c2d_def[] = {
+    {"body", offsetof(struct mgos_azure_c2d_arg, body),
+     MJS_FFI_CTYPE_STRUCT_MG_STR},
+    {"props", offsetof(struct mgos_azure_c2d_arg, props),
+     MJS_FFI_CTYPE_STRUCT_MG_STR},
+    {NULL, 0, MJS_FFI_CTYPE_NONE},
+};
+
+const struct mjs_c_struct_member *mgos_azure_get_c2dd(void) {
+  return c2d_def;
+}
+#endif /* HAVE_MJS */
