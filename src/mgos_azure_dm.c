@@ -55,12 +55,13 @@ static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
   if (dma.method.len == 0) goto out;
   rid = mg_strstr(ts, mg_mk_str("$rid="));
   if (rid == NULL) goto out;
-  for (rid = rid + 5, i = 0; rid < tend && isdigit((int) *rid); rid++, i++) {
+  for (rid = rid + 5, i = 0; rid < tend && isxdigit((int) *rid); rid++, i++) {
     idbuf[i] = *rid;
   }
-  dma.id = strtoll(idbuf, NULL, 10);
-  LOG(LL_DEBUG, ("DM '%.*s' (%lld): '%.*s'", (int) dma.method.len, dma.method.p,
-                 (long long int) dma.id, (int) dma.payload.len, dma.payload.p));
+  dma.id = strtoll(idbuf, NULL, 16);
+  LOG(LL_DEBUG, ("DM '%.*s' (%lld): '%.*s' '%.*s'", (int) dma.method.len,
+                 dma.method.p, (long long int) dma.id, (int) dma.payload.len,
+                 dma.payload.p, (int) ts.len, ts.p));
   mgos_event_trigger(MGOS_AZURE_EV_DM, &dma);
 
   return;
@@ -74,7 +75,7 @@ out:
 bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp) {
   bool res = false;
   char *topic = NULL;
-  mg_asprintf(&topic, 0, RESP_PREFIX "%d/?$rid=%lld", status,
+  mg_asprintf(&topic, 0, RESP_PREFIX "%d/?$rid=%llx", status,
               (long long int) id);
   if (topic != NULL) {
     res = mgos_mqtt_pub(topic, resp->p, resp->len, 0 /* qos */,
