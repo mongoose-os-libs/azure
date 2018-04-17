@@ -20,6 +20,8 @@
 
 #include <stdbool.h>
 
+#include "mgos_azure.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +35,7 @@ struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
 
 bool mgos_azure_cm_init(void);
 bool mgos_azure_dm_init(void);
+bool mgos_azure_shadow_init(void);
 
 #ifdef __cplusplus
 }

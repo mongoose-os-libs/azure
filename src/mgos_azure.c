@@ -161,7 +161,9 @@ bool mgos_azure_init(void) {
 
   s_ctx->host_name = mcfg.server;
 
-  ret = mgos_azure_cm_init() && mgos_azure_dm_init();
+  ret = mgos_azure_cm_init();
+  ret = ret && mgos_azure_dm_init();
+  ret = ret && mgos_azure_shadow_init();
 
 out:
   free(uri);
