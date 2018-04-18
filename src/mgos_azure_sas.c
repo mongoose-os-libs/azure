@@ -44,6 +44,10 @@ struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
     goto out;
   }
   k.len = len;
+  if (se < 1500000000) {
+    LOG(LL_ERROR, ("Time is not set, Azure connection will fail. "
+                   "Set the time or make sure SNTP is enabled and working."));
+  }
   len = snprintf(buf, sizeof(buf), "%llu", (long long unsigned int) se);
   if (mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
                        1 /* hmac */) != 0) {
