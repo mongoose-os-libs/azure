@@ -70,11 +70,16 @@ out:
 
 bool mgos_azure_send_d2c_msgf(const struct mg_str props, const char *json_fmt,
                               ...) {
+  bool res = false;
   va_list ap;
   va_start(ap, json_fmt);
   char *body = json_vasprintf(json_fmt, ap);
   va_end(ap);
-  return mgos_azure_send_d2c_msg(props, mg_mk_str(body));
+  if (body != NULL) {
+    res = mgos_azure_send_d2c_msg(props, mg_mk_str(body));
+    free(body);
+  }
+  return res;
 }
 
 bool mgos_azure_send_d2c_msgp(const struct mg_str *props,
