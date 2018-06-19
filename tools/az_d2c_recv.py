@@ -4,7 +4,7 @@
 #
 # Usage:
 #
-#   $ az_c2d_recv.py EVENT_HUB_NAME CONN_STR [offset]
+#   $ az_d2c_recv.py EVENT_HUB_NAME CONN_STR [offset]
 #
 # Both EH name and conn string can be obtained from the "Endpoints" section
 # of the IoT Hub page. Note that Event Hub name is not the same as IoT Hub
