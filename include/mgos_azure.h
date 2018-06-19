@@ -75,6 +75,9 @@ struct mg_str mgos_azure_get_host_name(void);
 /* Returns Azure device ID */
 struct mg_str mgos_azure_get_device_id(void);
 
+/* Returns true if Azure connection is up, false otherwise. */
+bool mgos_azure_is_connected(void);
+
 /* Respond to a Direct Method call. */
 bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp);
 

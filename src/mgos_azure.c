@@ -101,6 +101,10 @@ struct mg_str mgos_azure_get_device_id(void) {
   return mg_mk_str(s_ctx ? s_ctx->device_id : NULL);
 }
 
+bool mgos_azure_is_connected(void) {
+  return (s_ctx != NULL && s_ctx->is_connected);
+}
+
 bool mgos_azure_init(void) {
   bool ret = false;
   struct mg_str cs;
