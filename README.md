@@ -4,6 +4,8 @@ This library provides [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot
 
 Currently only plain MQTT is supported.
 
+See Azure IoT + Mongoose OS tutorial at https://mongoose-os.com/docs/cloud/azure.md
+
 ## Authentication
 
 Authentication by both SAS token and X.509 certificate is supported. See the [Authentication section](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-security#authentication) of the documentation for explanation.
