@@ -67,6 +67,10 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
       mg_mqtt_subscribe(nc, topics, ARRAY_SIZE(topics), ss->sub_id);
       break;
     }
+#if defined(__GNUC__) && __GNUC__ > 6
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
     case MG_EV_MQTT_SUBACK: {
       struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
       if (msg->message_id != ss->sub_id || ss->connected) break;
@@ -76,6 +80,9 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
       /* fallthrough */
     }
     case MG_EV_POLL: {
+#if defined(__GNUC__) && __GNUC__ > 6
+#pragma GCC diagnostic pop
+#endif
       if (!ss->connected) break;
       if (ss->want_get && !ss->sent_get) {
         char *topic = NULL;
