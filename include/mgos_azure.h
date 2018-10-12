@@ -64,7 +64,7 @@ bool mgos_azure_send_d2c_msgp(const struct mg_str *props,
                               const struct mg_str *body);
 
 struct mgos_azure_dm_arg {
-  int64_t id;
+  struct mg_str id;
   struct mg_str method;
   struct mg_str payload;
 };
@@ -79,10 +79,12 @@ struct mg_str mgos_azure_get_device_id(void);
 bool mgos_azure_is_connected(void);
 
 /* Respond to a Direct Method call. */
-bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp);
+bool mgos_azure_dm_response(struct mg_str id, int status,
+                            const struct mg_str *resp);
 
 /* Respond to a Direct Method call with a JSON message. */
-bool mgos_azure_dm_responsef(int64_t id, int status, const char *json_fmt, ...);
+bool mgos_azure_dm_responsef(struct mg_str id, int status, const char *json_fmt,
+                             ...);
 
 #ifdef __cplusplus
 }

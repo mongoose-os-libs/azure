@@ -40,8 +40,6 @@
 static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
                              int topic_len, const char *msg, int msg_len,
                              void *ud) {
-  int i;
-  char idbuf[20] = {0};
   struct mg_str ts = {.p = topic, .len = topic_len};
   struct mgos_azure_dm_arg dma = {.payload = {.p = msg, .len = msg_len}};
   const char *mbegin, *mend, *rid, *tend = topic + topic_len;
@@ -55,13 +53,16 @@ static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
   if (dma.method.len == 0) goto out;
   rid = mg_strstr(ts, mg_mk_str("$rid="));
   if (rid == NULL) goto out;
-  for (rid = rid + 5, i = 0; rid < tend && isxdigit((int) *rid); rid++, i++) {
-    idbuf[i] = *rid;
+  rid += 5;
+  dma.id.p = rid;
+  dma.id.len = 0;
+  while (rid < tend && isxdigit((int) *rid)) {
+    dma.id.len++;
+    rid++;
   }
-  dma.id = strtoll(idbuf, NULL, 16);
-  LOG(LL_DEBUG, ("DM '%.*s' (%lld): '%.*s' '%.*s'", (int) dma.method.len,
-                 dma.method.p, (long long int) dma.id, (int) dma.payload.len,
-                 dma.payload.p, (int) ts.len, ts.p));
+  LOG(LL_DEBUG, ("DM '%.*s' (%.*s): '%.*s' '%.*s'", (int) dma.method.len,
+                 dma.method.p, (int) dma.id.len, dma.id.p,
+                 (int) dma.payload.len, dma.payload.p, (int) ts.len, ts.p));
   mgos_event_trigger(MGOS_AZURE_EV_DM, &dma);
 
   return;
@@ -72,11 +73,12 @@ out:
   (void) ud;
 }
 
-bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp) {
+bool mgos_azure_dm_response(struct mg_str id, int status,
+                            const struct mg_str *resp) {
   bool res = false;
   char *topic = NULL;
-  mg_asprintf(&topic, 0, RESP_PREFIX "%d/?$rid=%llx", status,
-              (long long int) id);
+  mg_asprintf(&topic, 0, RESP_PREFIX "%d/?$rid=%.*s", status, (int) id.len,
+              id.p);
   if (topic != NULL) {
     res = mgos_mqtt_pub(topic, resp->p, resp->len, 0 /* qos */,
                         false /* retain */);
@@ -85,7 +87,7 @@ bool mgos_azure_dm_response(int64_t id, int status, const struct mg_str *resp) {
   return res;
 }
 
-bool mgos_azure_dm_responsef(int64_t id, int status, const char *json_fmt,
+bool mgos_azure_dm_responsef(struct mg_str id, int status, const char *json_fmt,
                              ...) {
   bool res = false;
   va_list ap;
