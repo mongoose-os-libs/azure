@@ -97,7 +97,7 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
         mg_asprintf(&topic, 0, AZURE_TWIN_UPDATE_TOPIC,
                     mgos_mqtt_get_packet_id());
         if (topic == NULL) break;
-        mgos_mqtt_pub(topic, up->data.buf, up->data.len, 0 /* qos */,
+        mgos_mqtt_pub(topic, up->data.buf, up->data.len, 1 /* qos */,
                       false /* retain */);
         STAILQ_REMOVE(&ss->updates, up, azure_shadow_update, next);
         mbuf_free(&up->data);
