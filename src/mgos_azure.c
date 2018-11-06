@@ -65,6 +65,7 @@ static void ev_cb(void *arg) {
 static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
                           void *user_data) {
   struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) user_data;
+  struct mgos_cloud_arg arg = {.type = MGOS_CLOUD_AZURE};
   switch (ev) {
     case MG_EV_MQTT_CONNACK: {
       struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
@@ -73,6 +74,7 @@ static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
           /* TODO(rojer): Should wait for CM and DM SUBACK, if enabled. */
           ctx->is_connected = true;
           mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CONNECT, false);
+          mgos_event_trigger(MGOS_EVENT_CLOUD_CONNECTED, &arg);
           break;
         default:
           LOG(LL_ERROR, ("Azure MQTT connection failed (%d). "
@@ -85,6 +87,8 @@ static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
       if (ctx->is_connected) {
         ctx->is_connected = false;
         mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CLOSE, false);
+        struct mgos_cloud_arg arg = {.type = MGOS_CLOUD_AZURE};
+        mgos_event_trigger(MGOS_EVENT_CLOUD_DISCONNECTED, &arg);
       }
       break;
   }
