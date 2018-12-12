@@ -103,10 +103,10 @@ bool mgos_azure_cm_init(void) {
 #ifdef MGOS_HAVE_MJS
 static const struct mjs_c_struct_member c2d_def[] = {
     {"body", offsetof(struct mgos_azure_c2d_arg, body),
-     MJS_FFI_CTYPE_STRUCT_MG_STR},
+     MJS_STRUCT_FIELD_TYPE_MG_STR, NULL},
     {"props", offsetof(struct mgos_azure_c2d_arg, props),
-     MJS_FFI_CTYPE_STRUCT_MG_STR},
-    {NULL, 0, MJS_FFI_CTYPE_NONE},
+     MJS_STRUCT_FIELD_TYPE_MG_STR, NULL},
+    {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
 };
 
 const struct mjs_c_struct_member *mgos_azure_get_c2dd(void) {
