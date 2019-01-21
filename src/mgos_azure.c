@@ -139,6 +139,7 @@ bool mgos_azure_init(void) {
     mcfg.client_id = mcfg.user = mcfg.pass = NULL;
     mcfg.ssl_cert = mcfg.ssl_key = NULL;
     mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, s_ctx);
+    mcfg.require_time = true;
     auth_method = "SAS";
   } else if (mgos_sys_config_get_azure_host_name() != NULL &&
              mgos_sys_config_get_azure_device_id() != NULL &&
