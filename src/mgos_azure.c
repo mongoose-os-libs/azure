@@ -123,6 +123,7 @@ bool mgos_azure_init(void) {
   s_ctx = (struct mgos_azure_ctx *) calloc(1, sizeof(*s_ctx));
   mcfg = *mgos_sys_config_get_mqtt();
   mcfg.enable = true;
+  mcfg.cloud_events = false;
   if (mcfg.ssl_ca_cert == NULL) mcfg.ssl_ca_cert = "ca.pem";
   cs = mg_mk_str(mgos_sys_config_get_azure_cs());
   if (cs.len > 0) {
