@@ -43,6 +43,7 @@ struct azure_shadow_update {
 };
 
 struct azure_shadow_state {
+  struct mgos_azure_ctx *ctx;
   struct mgos_rlock_type *lock;
   uint64_t current_version;
   unsigned int sub_id : 16;
@@ -72,11 +73,10 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
       if (msg->message_id != ss->sub_id || ss->connected) break;
       ss->connected = ss->want_get = true;
       ss->sent_get = ss->have_get = false;
+      ss->ctx->have_acks++;
+      mgos_azure_trigger_connected(ss->ctx);
       mgos_event_trigger(MGOS_SHADOW_CONNECTED, NULL);
-/* fallthrough */
-#if defined(__GNUC__) && __GNUC__ >= 7
-      __attribute__((fallthrough));
-#endif
+      /* fall-through */
     }
     case MG_EV_POLL: {
       if (!ss->connected) break;
@@ -176,7 +176,7 @@ static void azure_shadow_update_req_ev(int ev, void *ev_data, void *user_data) {
   (void) ev;
 }
 
-bool mgos_azure_shadow_init(void) {
+bool mgos_azure_shadow_init(struct mgos_azure_ctx *ctx) {
   const char *impl = mgos_sys_config_get_shadow_lib();
   if (!mgos_sys_config_get_shadow_enable()) return true;
   if (impl != NULL && strcmp(impl, "azure") != 0) {
@@ -190,6 +190,8 @@ bool mgos_azure_shadow_init(void) {
 
   struct azure_shadow_state *ss =
       (struct azure_shadow_state *) calloc(1, sizeof(*ss));
+  ctx->want_acks++;
+  ss->ctx = ctx;
   ss->lock = mgos_rlock_create();
   STAILQ_INIT(&ss->updates);
   mgos_event_add_handler(MGOS_SHADOW_GET,

@@ -27,14 +27,6 @@
 #include "mgos_sys_config.h"
 #include "mgos_system.h"
 
-struct mgos_azure_ctx {
-  char *host_name;
-  char *device_id;
-  char *access_key;
-  int token_ttl;
-  bool is_connected;
-};
-
 static struct mgos_azure_ctx *s_ctx = NULL;
 
 static void mgos_azure_mqtt_connect(struct mg_connection *c,
@@ -62,19 +54,23 @@ static void ev_cb(void *arg) {
   mgos_event_trigger((int) arg, NULL);
 }
 
+void mgos_azure_trigger_connected(struct mgos_azure_ctx *ctx) {
+  if (!ctx->connected || ctx->have_acks != ctx->want_acks) return;
+  struct mgos_cloud_arg arg = {.type = MGOS_CLOUD_AZURE};
+  mgos_event_trigger(MGOS_EVENT_CLOUD_CONNECTED, &arg);
+  mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CONNECT, false);
+}
+
 static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
                           void *user_data) {
   struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) user_data;
-  struct mgos_cloud_arg arg = {.type = MGOS_CLOUD_AZURE};
   switch (ev) {
     case MG_EV_MQTT_CONNACK: {
       struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
       switch (msg->connack_ret_code) {
         case 0:
-          /* TODO(rojer): Should wait for CM and DM SUBACK, if enabled. */
-          ctx->is_connected = true;
-          mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CONNECT, false);
-          mgos_event_trigger(MGOS_EVENT_CLOUD_CONNECTED, &arg);
+          ctx->connected = true;
+          mgos_azure_trigger_connected(ctx);
           break;
         default:
           LOG(LL_ERROR, ("Azure MQTT connection failed (%d). "
@@ -84,8 +80,9 @@ static void azure_mqtt_ev(struct mg_connection *nc, int ev, void *ev_data,
       break;
     }
     case MG_EV_CLOSE:
-      if (ctx->is_connected) {
-        ctx->is_connected = false;
+      if (ctx->connected) {
+        ctx->connected = false;
+        ctx->have_acks = 0;
         mgos_invoke_cb(ev_cb, (void *) MGOS_AZURE_EV_CLOSE, false);
         struct mgos_cloud_arg arg = {.type = MGOS_CLOUD_AZURE};
         mgos_event_trigger(MGOS_EVENT_CLOUD_DISCONNECTED, &arg);
@@ -106,7 +103,8 @@ struct mg_str mgos_azure_get_device_id(void) {
 }
 
 bool mgos_azure_is_connected(void) {
-  return (s_ctx != NULL && s_ctx->is_connected);
+  if (s_ctx == NULL) return false;
+  return (s_ctx->connected && s_ctx->have_acks >= s_ctx->want_acks);
 }
 
 bool mgos_azure_init(void) {
@@ -171,9 +169,9 @@ bool mgos_azure_init(void) {
 
   s_ctx->host_name = mcfg.server;
 
-  ret = mgos_azure_cm_init();
-  ret = ret && mgos_azure_dm_init();
-  ret = ret && mgos_azure_shadow_init();
+  ret = mgos_azure_cm_init(s_ctx);
+  ret = ret && mgos_azure_dm_init(s_ctx);
+  ret = ret && mgos_azure_shadow_init(s_ctx);
 
 out:
   free(uri);

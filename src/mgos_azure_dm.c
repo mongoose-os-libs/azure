@@ -37,16 +37,26 @@
 #define REQ_PREFIX_LEN (sizeof(REQ_PREFIX) - 1)
 #define RESP_PREFIX "$iothub/methods/res/"
 
-static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
-                             int topic_len, const char *msg, int msg_len,
-                             void *ud) {
-  struct mg_str ts = {.p = topic, .len = topic_len};
-  struct mgos_azure_dm_arg dma = {.payload = {.p = msg, .len = msg_len}};
-  const char *mbegin, *mend, *rid, *tend = topic + topic_len;
-  if (mg_strstr(ts, mg_mk_str_n(REQ_PREFIX, REQ_PREFIX_LEN)) != topic) {
+static void mgos_azure_dm_ev(struct mg_connection *nc, int ev, void *ev_data,
+                             void *user_data) {
+  struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) user_data;
+  if (ev == MG_EV_MQTT_SUBACK) {
+    ctx->have_acks++;
+    mgos_azure_trigger_connected(ctx);
+    return;
+  } else if (ev != MG_EV_MQTT_PUBLISH) {
+    return;
+  }
+  struct mg_mqtt_message *mm = (struct mg_mqtt_message *) ev_data;
+  struct mgos_azure_dm_arg dma = {
+      .payload = mm->payload,
+  };
+  struct mg_str ts = mm->topic;
+  const char *mbegin, *mend, *rid, *tend = ts.p + ts.len;
+  if (mg_strstr(ts, mg_mk_str_n(REQ_PREFIX, REQ_PREFIX_LEN)) != ts.p) {
     goto out;
   }
-  mbegin = topic + REQ_PREFIX_LEN;
+  mbegin = ts.p + REQ_PREFIX_LEN;
   for (mend = mbegin; mend < tend && *mend != '/'; mend++) {
   }
   dma.method = mg_mk_str_n(mbegin, mend - mbegin);
@@ -70,7 +80,6 @@ static void mgos_azure_dm_ev(struct mg_connection *nc, const char *topic,
 out:
   LOG(LL_ERROR, ("Invalid DM: '%.*s'", (int) ts.len, ts.p));
   (void) nc;
-  (void) ud;
 }
 
 bool mgos_azure_dm_response(struct mg_str id, int status,
@@ -103,8 +112,9 @@ bool mgos_azure_dm_responsef(struct mg_str id, int status, const char *json_fmt,
   return res;
 }
 
-bool mgos_azure_dm_init(void) {
+bool mgos_azure_dm_init(struct mgos_azure_ctx *ctx) {
   if (!mgos_sys_config_get_azure_enable_dm()) return true;
-  mgos_mqtt_sub(REQ_PREFIX "#", mgos_azure_dm_ev, NULL);
+  mgos_mqtt_global_subscribe(mg_mk_str(REQ_PREFIX "#"), mgos_azure_dm_ev, ctx);
+  ctx->want_acks++;
   return true;
 }

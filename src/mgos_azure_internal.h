@@ -26,6 +26,16 @@
 extern "C" {
 #endif
 
+struct mgos_azure_ctx {
+  char *host_name;
+  char *device_id;
+  char *access_key;
+  int token_ttl;
+  unsigned int want_acks : 8;
+  unsigned int have_acks : 8;
+  unsigned int connected : 8;
+};
+
 /*
  * Generate a SAS token as described here:
  * https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-security#security-tokens
@@ -33,9 +43,11 @@ extern "C" {
 struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
                                        const struct mg_str key, uint64_t se);
 
-bool mgos_azure_cm_init(void);
-bool mgos_azure_dm_init(void);
-bool mgos_azure_shadow_init(void);
+void mgos_azure_trigger_connected(struct mgos_azure_ctx *ctx);
+
+bool mgos_azure_cm_init(struct mgos_azure_ctx *ctx);
+bool mgos_azure_dm_init(struct mgos_azure_ctx *ctx);
+bool mgos_azure_shadow_init(struct mgos_azure_ctx *ctx);
 
 #ifdef __cplusplus
 }

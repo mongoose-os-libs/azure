@@ -32,24 +32,30 @@
 
 #include "mgos_mqtt.h"
 
-static void mgos_azure_cm_ev(struct mg_connection *nc, const char *topic,
-                             int topic_len, const char *msg, int msg_len,
-                             void *ud) {
-  struct mg_str ps = MG_MK_STR("/devicebound/%24");
-  struct mg_str ts = {.p = topic, .len = topic_len};
+static void mgos_azure_cm_ev(struct mg_connection *nc, int ev, void *ev_data,
+                             void *user_data) {
+  struct mgos_azure_ctx *ctx = (struct mgos_azure_ctx *) user_data;
+  if (ev == MG_EV_MQTT_SUBACK) {
+    ctx->have_acks++;
+    mgos_azure_trigger_connected(ctx);
+    return;
+  } else if (ev != MG_EV_MQTT_PUBLISH) {
+    return;
+  }
+  struct mg_mqtt_message *mm = (struct mg_mqtt_message *) ev_data;
   struct mgos_azure_c2d_arg c2da = {
-      .body = {.p = msg, .len = msg_len},
+      .body = mm->payload,
   };
+  struct mg_str ps = MG_MK_STR("/devicebound/%24");
   const char *pstart;
-  if ((pstart = mg_strstr(ts, ps)) != NULL) {
+  if ((pstart = mg_strstr(mm->topic, ps)) != NULL) {
     c2da.props.p = pstart + ps.len;
-    c2da.props.len = (ts.p + ts.len) - c2da.props.p;
+    c2da.props.len = (mm->topic.p + mm->topic.len) - c2da.props.p;
   }
   LOG(LL_DEBUG, ("Cloud msg: '%.*s' '%.*s'", (int) c2da.body.len, c2da.body.p,
                  (int) c2da.props.len, c2da.props.p));
   mgos_event_trigger(MGOS_AZURE_EV_C2D, &c2da);
   (void) nc;
-  (void) ud;
 }
 
 bool mgos_azure_send_d2c_msg(const struct mg_str props,
@@ -88,13 +94,14 @@ bool mgos_azure_send_d2c_msgp(const struct mg_str *props,
   return mgos_azure_send_d2c_msg((props ? *props : ns), (body ? *body : ns));
 }
 
-bool mgos_azure_cm_init(void) {
+bool mgos_azure_cm_init(struct mgos_azure_ctx *ctx) {
   if (!mgos_sys_config_get_azure_enable_cm()) return true;
   struct mg_str did = mgos_azure_get_device_id();
   char *topic = NULL;
   mg_asprintf(&topic, 0, "devices/%.*s/messages/devicebound/#", (int) did.len,
               did.p);
-  mgos_mqtt_sub(topic, mgos_azure_cm_ev, NULL);
+  mgos_mqtt_global_subscribe(mg_mk_str(topic), mgos_azure_cm_ev, ctx);
+  ctx->want_acks++;
   free(topic);
   return true;
 }
