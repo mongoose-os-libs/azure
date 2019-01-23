@@ -76,8 +76,8 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
       ss->ctx->have_acks++;
       mgos_azure_trigger_connected(ss->ctx);
       mgos_event_trigger(MGOS_SHADOW_CONNECTED, NULL);
-      /* fall-through */
     }
+    /* fall-through */
     case MG_EV_POLL: {
       if (!ss->connected) break;
       if (ss->want_get && !ss->sent_get) {
