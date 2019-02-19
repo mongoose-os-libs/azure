@@ -51,7 +51,7 @@ static void mgos_azure_mqtt_connect(struct mg_connection *c,
 }
 
 static void ev_cb(void *arg) {
-  mgos_event_trigger((int) arg, NULL);
+  mgos_event_trigger((intptr_t) arg, NULL);
 }
 
 void mgos_azure_trigger_connected(struct mgos_azure_ctx *ctx) {
