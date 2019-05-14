@@ -167,7 +167,7 @@ bool mgos_azure_init(void) {
 
   if (!mgos_mqtt_set_config(&mcfg)) goto out;
 
-  s_ctx->host_name = mcfg.server;
+  s_ctx->host_name = strdup(mcfg.server);
 
   ret = mgos_azure_cm_init(s_ctx);
   ret = ret && mgos_azure_dm_init(s_ctx);
