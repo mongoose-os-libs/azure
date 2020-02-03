@@ -71,8 +71,9 @@ static void mgos_azure_shadow_mqtt_ev(struct mg_connection *nc, int ev,
     case MG_EV_MQTT_SUBACK: {
       struct mg_mqtt_message *msg = (struct mg_mqtt_message *) ev_data;
       if (msg->message_id != ss->sub_id || ss->connected) break;
-      ss->connected = ss->want_get = true;
+      ss->connected = true;
       ss->sent_get = ss->have_get = false;
+      ss->want_get = mgos_sys_config_get_shadow_get_on_connect();
       ss->ctx->have_acks++;
       mgos_azure_trigger_connected(ss->ctx);
       mgos_event_trigger(MGOS_SHADOW_CONNECTED, NULL);
