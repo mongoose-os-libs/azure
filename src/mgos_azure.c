@@ -137,7 +137,6 @@ bool mgos_azure_init(void) {
     mcfg.server = s_ctx->host_name;
     mcfg.client_id = mcfg.user = mcfg.pass = NULL;
     mcfg.ssl_cert = mcfg.ssl_key = NULL;
-    mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, s_ctx);
     mcfg.require_time = true;
     auth_method = "SAS";
   } else if (mgos_sys_config_get_azure_host_name() != NULL &&
@@ -153,7 +152,6 @@ bool mgos_azure_init(void) {
     mcfg.pass = NULL;
     mcfg.ssl_cert = (char *) mgos_sys_config_get_azure_cert();
     mcfg.ssl_key = (char *) mgos_sys_config_get_azure_key();
-    mgos_mqtt_set_connect_fn(NULL, NULL);
     s_ctx->device_id = (char *) mgos_sys_config_get_azure_device_id();
     auth_method = mcfg.ssl_cert;
   } else {
@@ -166,6 +164,12 @@ bool mgos_azure_init(void) {
                 s_ctx->device_id, auth_method));
 
   if (!mgos_mqtt_set_config(&mcfg)) goto out;
+
+  if (cs.len > 0) {
+    mgos_mqtt_set_connect_fn(mgos_azure_mqtt_connect, s_ctx);
+  } else {
+    mgos_mqtt_set_connect_fn(NULL, NULL);
+  }
 
   s_ctx->host_name = strdup(mcfg.server);
 
