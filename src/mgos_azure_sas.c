@@ -66,7 +66,7 @@ struct mg_str mgos_azure_gen_sas_token(const struct mg_str uri,
     goto out;
   }
   mbedtls_md_free(&ctx);
-  cs_base64_encode((uint8_t *) buf, sizeof(buf), b64buf);
+  cs_base64_encode((uint8_t *) buf, sizeof(buf), b64buf, NULL);
   sig = mg_url_encode_opt(mg_mk_str_n(b64buf, 44), noq,
                           MG_URL_ENCODE_F_UPPERCASE_HEX);
   res.len = mg_asprintf(
