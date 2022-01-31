@@ -202,5 +202,6 @@ bool mgos_azure_shadow_init(struct mgos_azure_ctx *ctx) {
   struct mg_str did = mgos_azure_get_device_id();
   LOG(LL_INFO,
       ("Azure Device Twin enabled, device %.*s", (int) did.len, did.p));
+  (void) did;
   return true;
 }
