@@ -35,7 +35,7 @@
 #define AZURE_TWIN_DELTA_TOPIC "$iothub/twin/PATCH/properties/desired/"
 #define AZURE_TWIN_GET_TOPIC "$iothub/twin/GET/?$rid=get%u"
 #define AZURE_TWIN_UPDATE_TOPIC \
-  "$iothub/twin/PATCH/properties/reported/?rid=upd%u"
+  "$iothub/twin/PATCH/properties/reported/?$rid=upd%u"
 
 struct azure_shadow_update {
   struct mbuf data;
